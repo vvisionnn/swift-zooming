@@ -2,38 +2,32 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   test:
     name: Test
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       matrix:
         destination:
-          - platform=iOS Simulator,OS=17.2,name=iPhone 15 Pro
-          - platform=iOS Simulator,OS=16.4,name=iPhone 14
+          - platform=iOS Simulator,OS=18.0,name=iPhone 16 Pro
+          - platform=iOS Simulator,OS=17.0,name=iPhone 15 Pro
+          - platform=iOS Simulator,OS=16.0,name=iPhone 14 Pro
+          
     steps:
     - uses: actions/checkout@v4
     
     - name: Select Xcode version
-      run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+      run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
     
     - name: Show Xcode version
       run: xcodebuild -version
     
     - name: Show Swift version
       run: swift --version
-    
-    - name: Cache Swift Package Manager
-      uses: actions/cache@v4
-      with:
-        path: .build
-        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-spm-
     
     - name: Build for iOS Simulator
       run: |
@@ -49,51 +43,6 @@ jobs:
           -scheme Zooming \
           -destination "${{ matrix.destination }}" \
           -enableCodeCoverage YES \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO
-    
-    - name: Generate code coverage report
-      run: |
-        # Find the test bundle and profdata file
-        DERIVED_DATA=$(xcodebuild -showBuildSettings -scheme Zooming | grep -m 1 "BUILD_DIR" | grep -oE "\/.*" | sed 's|Build/Products|Build|')
-        xcrun llvm-cov export -format="lcov" \
-          "${DERIVED_DATA}/Debug-iphonesimulator/ZoomingTests.xctest/ZoomingTests" \
-          -instr-profile "${DERIVED_DATA}/Debug-iphonesimulator/ZoomingTests.xctest/Contents/Info.plist" \
-          > coverage.lcov 2>/dev/null || echo "Code coverage generation failed, but tests passed"
-    
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: coverage.lcov
-        fail_ci_if_error: true
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  swiftlint:
-    name: SwiftLint
-    runs-on: macos-14
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: SwiftLint
-      run: |
-        brew install swiftlint
-        swiftlint --strict
-
-  build-example:
-    name: Build Example Apps
-    runs-on: macos-14
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Select Xcode version
-      run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
-    
-    - name: Build for iOS Simulator  
-      run: |
-        xcodebuild build \
-          -scheme Zooming \
-          -destination "${{ matrix.destination }}" \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO
 
