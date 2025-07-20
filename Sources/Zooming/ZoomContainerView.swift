@@ -1,5 +1,9 @@
 import UIKit
 
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+
 public class ZoomContainerView: UIView {
 	private let scrollView = UIScrollView()
 	private var childView: ZoomableView?
@@ -10,8 +14,24 @@ public class ZoomContainerView: UIView {
 
 	public var onZoomStateChanged: ((ZoomState) -> Void)?
 
+	// Cache reference for efficient updates
+	public private(set) var zoomableChildView: ZoomableView?
+
 	private var fitScale: CGFloat = 1.0
 	private var fillScale: CGFloat = 1.0
+
+	// Layout caching to prevent repeated calculations
+	private var lastContainerSize: CGSize = .zero
+	private var lastContentSize: CGSize = .zero
+	private var isLayoutValid: Bool = false
+
+	// State diffing for callback optimization
+	private var lastNotifiedState: ZoomState?
+	private let stateDiffThreshold: CGFloat = 0.001 // Threshold for meaningful state changes
+
+	// Simple throttling without Timer overhead
+	private var lastNotificationTime: CFTimeInterval = 0
+	private let throttleInterval: CFTimeInterval = 0.016 // ~60fps
 
 	private var normalizedScale: CGFloat {
 		scrollView.zoomScale / fitScale
@@ -25,6 +45,10 @@ public class ZoomContainerView: UIView {
 	required init?(coder: NSCoder) {
 		super.init(coder: coder)
 		setupScrollView()
+	}
+
+	deinit {
+		// No cleanup needed for simple time-based throttling
 	}
 
 	private func setupScrollView() {
@@ -53,6 +77,10 @@ public class ZoomContainerView: UIView {
 	public func setChildView(_ view: ZoomableView) {
 		childView?.removeFromSuperview()
 		childView = view
+		zoomableChildView = view // Cache for efficient access
+
+		// Invalidate layout cache when child view changes
+		isLayoutValid = false
 
 		scrollView.addSubview(view)
 		view.translatesAutoresizingMaskIntoConstraints = false
@@ -63,6 +91,10 @@ public class ZoomContainerView: UIView {
 	public override func layoutSubviews() {
 		super.layoutSubviews()
 		if childView != nil {
+			// Invalidate cache if bounds changed
+			if bounds.size != lastContainerSize {
+				isLayoutValid = false
+			}
 			setupInitialLayout()
 		}
 	}
@@ -81,6 +113,17 @@ public class ZoomContainerView: UIView {
 			return
 		}
 
+		// Early return if layout hasn't changed to avoid unnecessary calculations
+		if isLayoutValid,
+		   lastContainerSize == containerSize,
+		   lastContentSize == contentSize {
+			return
+		}
+
+		// Cache the current sizes
+		lastContainerSize = containerSize
+		lastContentSize = contentSize
+
 		let widthScale = containerSize.width / contentSize.width
 		let heightScale = containerSize.height / contentSize.height
 
@@ -92,6 +135,9 @@ public class ZoomContainerView: UIView {
 
 		scrollView.contentSize = contentSize
 		childView.frame = CGRect(origin: .zero, size: contentSize)
+
+		// Mark layout as valid
+		isLayoutValid = true
 
 		DispatchQueue.main.async {
 			let targetScale = self.initialMode == .fit ? self.fitScale : self.fillScale
@@ -164,15 +210,48 @@ public class ZoomContainerView: UIView {
 		initialMode = mode
 	}
 
-	private func notifyZoomStateChanged() {
-		let state = ZoomState(
+	private func notifyZoomStateChanged(immediate: Bool = false) {
+		let currentState = ZoomState(
 			scale: normalizedScale,
 			offset: scrollView.contentOffset,
 			mode: currentMode,
 			isZooming: isZooming,
 			isUserInteracting: isUserInteracting,
 		)
-		onZoomStateChanged?(state)
+
+		// Only proceed if state has meaningfully changed
+		guard shouldNotifyStateChange(currentState) else { return }
+
+		if immediate || !isUserInteracting {
+			// Immediate notification for important state changes
+			lastNotificationTime = CACurrentMediaTime()
+			lastNotifiedState = currentState
+			onZoomStateChanged?(currentState)
+		} else {
+			// Simple time-based throttling without Timer overhead
+			let currentTime = CACurrentMediaTime()
+			if currentTime - lastNotificationTime >= throttleInterval {
+				lastNotificationTime = currentTime
+				lastNotifiedState = currentState
+				onZoomStateChanged?(currentState)
+			}
+		}
+	}
+
+	private func shouldNotifyStateChange(_ newState: ZoomState) -> Bool {
+		guard let lastState = lastNotifiedState else {
+			return true // First notification
+		}
+
+		// Check for meaningful differences
+		let scaleChanged = abs(newState.scale - lastState.scale) > stateDiffThreshold
+		let offsetChanged = abs(newState.offset.x - lastState.offset.x) > stateDiffThreshold ||
+			abs(newState.offset.y - lastState.offset.y) > stateDiffThreshold
+		let modeChanged = newState.mode != lastState.mode
+		let zoomingChanged = newState.isZooming != lastState.isZooming
+		let interactionChanged = newState.isUserInteracting != lastState.isUserInteracting
+
+		return scaleChanged || offsetChanged || modeChanged || zoomingChanged || interactionChanged
 	}
 }
 
@@ -184,39 +263,40 @@ extension ZoomContainerView: UIScrollViewDelegate {
 	public func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
 		isZooming = true
 		isUserInteracting = true
-		notifyZoomStateChanged()
+		notifyZoomStateChanged(immediate: true) // Immediate for interaction state changes
 	}
 
 	public func scrollViewDidZoom(_ scrollView: UIScrollView) {
 		centerContent()
 		updateModeBasedOnScale()
-		notifyZoomStateChanged()
+		notifyZoomStateChanged() // Throttled during interaction
 	}
 
 	public func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
 		isZooming = false
 		isUserInteracting = false
-		notifyZoomStateChanged()
+		notifyZoomStateChanged(immediate: true) // Immediate for interaction state changes
 	}
 
 	public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
 		isUserInteracting = true
-		notifyZoomStateChanged()
+		notifyZoomStateChanged(immediate: true) // Immediate for interaction state changes
 	}
 
 	public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-		notifyZoomStateChanged()
+		notifyZoomStateChanged() // Throttled during interaction
 	}
 
 	public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
 		if !decelerate {
 			isUserInteracting = false
-			notifyZoomStateChanged()
+			notifyZoomStateChanged(immediate: true) // Immediate for interaction state changes
 		}
 	}
 
 	public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
 		isUserInteracting = false
-		notifyZoomStateChanged()
+		notifyZoomStateChanged(immediate: true) // Immediate for interaction state changes
 	}
 }
+

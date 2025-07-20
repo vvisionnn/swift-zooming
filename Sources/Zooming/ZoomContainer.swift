@@ -33,10 +33,8 @@ public struct ZoomContainer<Content: View>: UIViewRepresentable {
 
 		zoomContainer.setChildView(wrapperView)
 
-		DispatchQueue.main.async {
-			zoomContainer.setNeedsLayout()
-			zoomContainer.layoutIfNeeded()
-		}
+		zoomContainer.setNeedsLayout()
+		zoomContainer.layoutIfNeeded()
 
 		return zoomContainer
 	}
@@ -44,7 +42,8 @@ public struct ZoomContainer<Content: View>: UIViewRepresentable {
 	public func updateUIView(_ uiView: ZoomContainerView, context: Context) {
 		uiView.onZoomStateChanged = onZoomStateChanged
 
-		if let wrapperView = uiView.subviews.first as? SwiftUIZoomableView {
+		// More efficient way to find the wrapper view
+		if let wrapperView = uiView.zoomableChildView as? SwiftUIZoomableView {
 			wrapperView.updateContent(content)
 		}
 	}

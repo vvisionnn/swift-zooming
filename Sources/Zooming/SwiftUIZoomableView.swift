@@ -10,17 +10,24 @@ class SwiftUIZoomableView: UIView, ZoomableView {
 	}
 
 	init<Content: View>(hostingController: UIHostingController<Content>, intrinsicSize: CGSize) {
+		// Create a single AnyView wrapper - simple and direct
 		self.hostingController = UIHostingController(rootView: AnyView(hostingController.rootView))
 		self._intrinsicContentSize = intrinsicSize
 		super.init(frame: .zero)
 
-		addSubview(self.hostingController.view)
-		self.hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+		setupHostingController()
+	}
+	
+	private func setupHostingController() {
+		hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+		hostingController.view.backgroundColor = .clear
+		
+		addSubview(hostingController.view)
 		NSLayoutConstraint.activate([
-			self.hostingController.view.topAnchor.constraint(equalTo: topAnchor),
-			self.hostingController.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-			self.hostingController.view.trailingAnchor.constraint(equalTo: trailingAnchor),
-			self.hostingController.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+			hostingController.view.topAnchor.constraint(equalTo: topAnchor),
+			hostingController.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+			hostingController.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+			hostingController.view.bottomAnchor.constraint(equalTo: bottomAnchor),
 		])
 	}
 
@@ -30,6 +37,7 @@ class SwiftUIZoomableView: UIView, ZoomableView {
 	}
 	
 	func updateContent<Content: View>(_ content: Content) {
+		// Efficiently update the root view without recreating the controller
 		hostingController.rootView = AnyView(content)
 	}
 }

@@ -1,7 +1,7 @@
+import SnapshotTesting
 import SwiftUI
 import Testing
 import UIKit
-import SnapshotTesting
 @testable import Zooming
 
 @MainActor
