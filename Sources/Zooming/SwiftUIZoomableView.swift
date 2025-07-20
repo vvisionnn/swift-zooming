@@ -28,4 +28,8 @@ class SwiftUIZoomableView: UIView, ZoomableView {
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
 	}
+	
+	func updateContent<Content: View>(_ content: Content) {
+		hostingController.rootView = AnyView(content)
+	}
 }

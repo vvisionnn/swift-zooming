@@ -88,7 +88,7 @@ public class ZoomContainerView: UIView {
 		fillScale = max(widthScale, heightScale)
 
 		scrollView.minimumZoomScale = fitScale
-		scrollView.maximumZoomScale = fitScale * 5.0
+		scrollView.maximumZoomScale = max(fitScale * 5.0, fillScale * 1.1)
 
 		scrollView.contentSize = contentSize
 		childView.frame = CGRect(origin: .zero, size: contentSize)
@@ -151,10 +151,11 @@ public class ZoomContainerView: UIView {
 
 	private func updateModeBasedOnScale() {
 		let tolerance: CGFloat = 0.01
+		let normalizedFillScale = fillScale / fitScale
 
 		if abs(normalizedScale - 1.0) < tolerance {
 			currentMode = .fit
-		} else if abs(scrollView.zoomScale - fillScale) < tolerance {
+		} else if abs(normalizedScale - normalizedFillScale) < tolerance {
 			currentMode = .fill
 		}
 	}

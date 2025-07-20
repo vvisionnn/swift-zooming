@@ -293,14 +293,22 @@ struct ZoomContainerDebugExample: View {
 										}
 									},
 								)
+								.overlay {
+									Rectangle()
+										.strokeBorder(Color.green, lineWidth: 1)
+								}
 						}
-						.frame(height: 250)
+						.frame(height: 300)
 						.background(Color(.systemGray6))
 						.cornerRadius(12)
 						.overlay(
 							RoundedRectangle(cornerRadius: 12)
 								.stroke(Color(.systemGray4), lineWidth: 1),
 						)
+						.overlay {
+							Rectangle()
+								.strokeBorder(Color.blue, lineWidth: 1)
+						}
 						.id("\(Int(contentWidth))-\(Int(contentHeight))-\(initialMode)")
 					}
 					.padding(20)
@@ -493,4 +501,19 @@ struct MetricCard: View {
 	}
 }
 
+#Preview("Debug Example") {
+	ZoomContainerDebugExample()
+}
+
+#Preview("Gradient Example") {
+	ZoomContainerGradientExample()
+}
+
+#Preview("Photo Example") {
+	ZoomContainerPhotoExample()
+}
+
+#Preview("Square Example") {
+	ZoomContainerSquareExample()
+}
 #endif

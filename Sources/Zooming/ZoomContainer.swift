@@ -43,6 +43,10 @@ public struct ZoomContainer<Content: View>: UIViewRepresentable {
 
 	public func updateUIView(_ uiView: ZoomContainerView, context: Context) {
 		uiView.onZoomStateChanged = onZoomStateChanged
+
+		if let wrapperView = uiView.subviews.first as? SwiftUIZoomableView {
+			wrapperView.updateContent(content)
+		}
 	}
 }
 
