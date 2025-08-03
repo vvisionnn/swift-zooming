@@ -209,6 +209,12 @@ public class ZoomContainerView: UIView {
 	public func setInitialMode(_ mode: ZoomMode) {
 		initialMode = mode
 	}
+	
+	public func contentSizeDidChange() {
+		// Invalidate layout cache to force recalculation
+		isLayoutValid = false
+		setupInitialLayout()
+	}
 
 	private func notifyZoomStateChanged(immediate: Bool = false) {
 		let currentState = ZoomState(

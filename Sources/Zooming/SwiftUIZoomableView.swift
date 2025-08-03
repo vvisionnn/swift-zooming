@@ -3,7 +3,7 @@ import UIKit
 
 class SwiftUIZoomableView: UIView, ZoomableView {
 	private let hostingController: UIHostingController<AnyView>
-	private let _intrinsicContentSize: CGSize
+	private var _intrinsicContentSize: CGSize
 
 	override var intrinsicContentSize: CGSize {
 		_intrinsicContentSize
@@ -17,11 +17,11 @@ class SwiftUIZoomableView: UIView, ZoomableView {
 
 		setupHostingController()
 	}
-	
+
 	private func setupHostingController() {
 		hostingController.view.translatesAutoresizingMaskIntoConstraints = false
 		hostingController.view.backgroundColor = .clear
-		
+
 		addSubview(hostingController.view)
 		NSLayoutConstraint.activate([
 			hostingController.view.topAnchor.constraint(equalTo: topAnchor),
@@ -35,9 +35,15 @@ class SwiftUIZoomableView: UIView, ZoomableView {
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
 	}
-	
+
 	func updateContent<Content: View>(_ content: Content) {
 		// Efficiently update the root view without recreating the controller
 		hostingController.rootView = AnyView(content)
+	}
+	
+	func updateIntrinsicContentSize(_ newSize: CGSize) {
+		guard _intrinsicContentSize != newSize else { return }
+		_intrinsicContentSize = newSize
+		invalidateIntrinsicContentSize()
 	}
 }

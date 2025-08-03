@@ -44,7 +44,14 @@ public struct ZoomContainer<Content: View>: UIViewRepresentable {
 
 		// More efficient way to find the wrapper view
 		if let wrapperView = uiView.zoomableChildView as? SwiftUIZoomableView {
+			let oldContentSize = wrapperView.intrinsicContentSize
 			wrapperView.updateContent(content)
+			wrapperView.updateIntrinsicContentSize(contentSize)
+			
+			// Notify container if content size changed
+			if oldContentSize != contentSize {
+				uiView.contentSizeDidChange()
+			}
 		}
 	}
 }

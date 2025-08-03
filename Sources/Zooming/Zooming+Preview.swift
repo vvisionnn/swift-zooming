@@ -48,6 +48,7 @@ struct ZoomContainerShowcase: View {
 
 struct PhotoViewerDemo: View {
 	@State private var zoomState: ZoomState?
+	@State private var size: CGSize = .init(width: 400, height: 300)
 	
 	var body: some View {
 		DemoCard(
@@ -56,49 +57,58 @@ struct PhotoViewerDemo: View {
 			icon: "photo.fill",
 			iconColor: .orange
 		) {
-			ZoomContainer(
-				contentSize: CGSize(width: 400, height: 300),
-				initialMode: .fit,
-				onZoomStateChanged: { state in
-					zoomState = state
-				}
-			) {
-				// Mock photo content
-				ZStack {
-					// Photo background
-					LinearGradient(
-						colors: [.orange.opacity(0.3), .pink.opacity(0.3), .purple.opacity(0.3)],
-						startPoint: .topLeading,
-						endPoint: .bottomTrailing
-					)
-					
-					// Photo frame
-					RoundedRectangle(cornerRadius: 12)
-						.strokeBorder(.white, lineWidth: 4)
-						.shadow(color: .black.opacity(0.1), radius: 8)
-					
-					// Photo content
-					VStack(spacing: 12) {
-						Image(systemName: "photo.circle.fill")
-							.font(.system(size: 48))
-							.foregroundColor(.white.opacity(0.9))
+			VStack {
+				ZoomContainer(
+					contentSize: size,
+					initialMode: .fit,
+					onZoomStateChanged: { state in
+						zoomState = state
+					}
+				) {
+					// Mock photo content
+					ZStack {
+						// Photo background
+						LinearGradient(
+							colors: [.orange.opacity(0.3), .pink.opacity(0.3), .purple.opacity(0.3)],
+							startPoint: .topLeading,
+							endPoint: .bottomTrailing
+						)
 						
-						Text("400 × 300")
-							.font(.title2)
-							.fontWeight(.semibold)
-							.foregroundColor(.white)
+						// Photo frame
+						RoundedRectangle(cornerRadius: 12)
+							.strokeBorder(.white, lineWidth: 4)
+							.shadow(color: .black.opacity(0.1), radius: 8)
 						
-						Text("Landscape Photo")
-							.font(.caption)
-							.foregroundColor(.white.opacity(0.8))
-							.padding(.horizontal, 12)
-							.padding(.vertical, 4)
-							.background(.black.opacity(0.2))
-							.clipShape(Capsule())
+						// Photo content
+						VStack(spacing: 12) {
+							Image(systemName: "photo.circle.fill")
+								.font(.system(size: 48))
+								.foregroundColor(.white.opacity(0.9))
+							
+							Text("\(size.width) × \(size.height)")
+								.font(.title2)
+								.fontWeight(.semibold)
+								.foregroundColor(.white)
+							
+							Text("Landscape Photo")
+								.font(.caption)
+								.foregroundColor(.white.opacity(0.8))
+								.padding(.horizontal, 12)
+								.padding(.vertical, 4)
+								.background(.black.opacity(0.2))
+								.clipShape(Capsule())
+						}
 					}
 				}
+				.containerBorder()
+				
+				Button(action: {
+					self.size = .init(width: .random(in: 100...500), height: .random(in: 100...500))
+					debugPrint("\(size)")
+				}) {
+					Text("Random Size")
+				}
 			}
-			.containerBorder()
 		} metrics: {
 			MetricsPanel(zoomState: zoomState)
 		}
