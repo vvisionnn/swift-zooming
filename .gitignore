@@ -8,3 +8,5 @@ DerivedData/
 .netrc
 mise.local.toml
 .vscode/
+Derived/
+Zooming.xcodeproj
